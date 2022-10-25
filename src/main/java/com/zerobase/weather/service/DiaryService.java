@@ -1,5 +1,6 @@
 package com.zerobase.weather.service;
 
+import com.zerobase.weather.WeatherApplication;
 import com.zerobase.weather.domain.DateWeather;
 import com.zerobase.weather.domain.Diary;
 import com.zerobase.weather.repository.DateWeatherRepository;
@@ -9,6 +10,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -30,9 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final DateWeatherRepository dateWeatherRepository;
-
     @Value("${openweathermap.key}")
     private String apiKey;
+    private static final Logger logger = LoggerFactory.getLogger(WeatherApplication.class);
 
     /**
      * 다이어리 생성
@@ -42,6 +45,7 @@ public class DiaryService {
         // 캐시를 사용하기에 이제 api 안불러도 된다.
         // Map<String, Object> parsedWeather = getWeatherParsed();
 
+        logger.info("started to create diary");
         // 날씨 데이터 가져오기 (Api or DB)
         DateWeather dateWeather = getDateWeather(date);
 
@@ -50,23 +54,14 @@ public class DiaryService {
         nowDiary.setDateWeather(dateWeather);
         nowDiary.setText(text);
         diaryRepository.save(nowDiary);
+        logger.info("end to create diary");
     }
-
-    private DateWeather getDateWeather(LocalDate date) {
-        List<DateWeather> dateWeatherListFromDb = dateWeatherRepository.findAllByDate(date);
-        if(dateWeatherListFromDb.size() == 0){// 캐시에 값이 없는 경우
-            // 새로 api에서 날씨 정보를 가져와야한다.
-            return getWeatherFromApi();
-        }
-
-        return dateWeatherListFromDb.get(0);
-    }
-
 
     /**
      * 다이어리 조회 1개의 날짜
      */
     public List<Diary> readDiary(LocalDate date) {
+        logger.debug("read diary");
         return diaryRepository.findAllByDate(date);
     }
 
@@ -74,6 +69,7 @@ public class DiaryService {
      * 다이어리 조회 범위 날짜
      */
     public List<Diary> readDiaries(LocalDate startDate, LocalDate endDate) {
+        logger.debug("read diaries");
         return diaryRepository.findAllByDateBetween(startDate, endDate);
     }
 
@@ -82,10 +78,13 @@ public class DiaryService {
      */
     @Transactional(readOnly = false)
     public void updateDiary(LocalDate date, String text) {
+        logger.debug("started to update diary");
         Diary diary = diaryRepository.getFirstByDate(date);
         diary.setText(text);
 
         diaryRepository.save(diary);
+        logger.debug("end to update diary");
+
     }
 
     /**
@@ -94,6 +93,7 @@ public class DiaryService {
     @Transactional(readOnly = false)
     public void deleteDiary(LocalDate date) {
         diaryRepository.deleteAllByDate(date);
+        logger.debug("delete diary");
     }
 
     /**
@@ -102,6 +102,7 @@ public class DiaryService {
     @Scheduled(cron = "0 0 1 * * *")// 초분시일월년
     @Transactional(readOnly = false)
     public void saveWeatherDate(){
+        logger.info("1시에 날씨 데이터 가져옴");
         dateWeatherRepository.save(getWeatherFromApi());
     }
 
@@ -166,6 +167,16 @@ public class DiaryService {
         resultMap.put("icon", weatherData.get("icon"));
         return resultMap;
 
+    }
+
+    private DateWeather getDateWeather(LocalDate date) {
+        List<DateWeather> dateWeatherListFromDb = dateWeatherRepository.findAllByDate(date);
+        if(dateWeatherListFromDb.size() == 0){// 캐시에 값이 없는 경우
+            // 새로 api에서 날씨 정보를 가져와야한다.
+            return getWeatherFromApi();
+        }
+
+        return dateWeatherListFromDb.get(0);
     }
 }
 
