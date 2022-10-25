@@ -7,7 +7,7 @@ Content-Type: application/json
 }
 
 ### read diary
-GET http://localhost:8080/read/diary?date=2022-05-20
+GET http://localhost:8080/read/diary?date=4000-05-20
 Accept: application/json
 
 ### read diaries

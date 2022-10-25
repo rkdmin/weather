@@ -3,6 +3,7 @@ package com.zerobase.weather.service;
 import com.zerobase.weather.WeatherApplication;
 import com.zerobase.weather.domain.DateWeather;
 import com.zerobase.weather.domain.Diary;
+import com.zerobase.weather.error.InvalidDate;
 import com.zerobase.weather.repository.DateWeatherRepository;
 import com.zerobase.weather.repository.DiaryRepository;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,9 @@ public class DiaryService {
      * 다이어리 조회 1개의 날짜
      */
     public List<Diary> readDiary(LocalDate date) {
+        if(date.isAfter(LocalDate.ofYearDay(3050, 1))){
+            throw new InvalidDate();
+        }
         logger.debug("read diary");
         return diaryRepository.findAllByDate(date);
     }
